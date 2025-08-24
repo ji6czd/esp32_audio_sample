@@ -8,8 +8,13 @@ char* SoundFile[] = {
     "/cat.wav", "/dog.wav", "/cow.wav", "/sheep.wav", "/rooster.wav",
 };
 
+// ピン配置
+constexpr uint8_t I2S_BCLK = 41;
+constexpr uint8_t I2S_DOUT = 42;
+constexpr uint8_t I2S_LRCK = 43;
+
 // 下記はグローバル変数として定義しなければならない。
-ESP32I2SAudio audio(D4, D5, D6);  // BCLK, LRCLK, DOUT
+ESP32I2SAudio audio(I2S_BCLK, I2S_LRCK, I2S_DOUT);  // BCLK, LRCLK, DOUT
 BackgroundAudioWAV BMP(audio);
 
 void fail() {
@@ -20,13 +25,14 @@ void fail() {
 }
 
 void playWav(const char* filename) {
-  constexpr size_t bufferSize = 4096;
+  constexpr size_t bufferSize = 512;
   File audioFile;
-  uint8_t* audioFileBuffer = new uint8_t[bufferSize];
+  // uint8_t* audioFileBuffer = new uint8_t[bufferSize];
+  uint8_t audioFileBuffer[bufferSize];
   audioFile = SPIFFS.open(filename, "r");
   if (!audioFile) {
     Serial.println("Failed to open WAV file");
-    delete audioFileBuffer;
+    // delete audioFileBuffer;
     fail();
   }
 
@@ -36,7 +42,10 @@ void playWav(const char* filename) {
   }
   Serial.println("Close");
   audioFile.close();
-  delete audioFileBuffer;
+  // delete audioFileBuffer;
+  while (BMP.playing()) {
+    delay(100);
+  }
 }
 
 void setup() {
@@ -56,13 +65,5 @@ void setup() {
 
 void loop() {
   playWav("/dog.wav");
-  delay(2000);
-  playWav("/cat.wav");
-  delay(2000);
-  playWav("/cow.wav");
-  delay(2000);
-  playWav("/sheep.wav");
-  delay(2000);
-  playWav("/rooster.wav");
   delay(2000);
 }
