@@ -1,14 +1,14 @@
-#include <Arduino.h>
 #include <BackgroundAudio.h>
 #include <ESP32I2SAudio.h>
 #include <FS.h>
 #include <SPIFFS.h>
 
-char* SoundFile[] = {
+const char* SoundFile[] = {
     "/cat.wav", "/dog.wav", "/cow.wav", "/sheep.wav", "/rooster.wav",
 };
 
 // ピン配置
+#include <Arduino.h>
 constexpr uint8_t I2S_BCLK = 41;
 constexpr uint8_t I2S_DOUT = 42;
 constexpr uint8_t I2S_LRCK = 43;
@@ -25,27 +25,25 @@ void fail() {
 }
 
 void playWav(const char* filename) {
-  constexpr size_t bufferSize = 512;
-  File audioFile;
-  // uint8_t* audioFileBuffer = new uint8_t[bufferSize];
-  uint8_t audioFileBuffer[bufferSize];
-  audioFile = SPIFFS.open(filename, "r");
+  File audioFile = SPIFFS.open(filename, "r");
   if (!audioFile) {
     Serial.println("Failed to open WAV file");
-    // delete audioFileBuffer;
     fail();
   }
-
-  while (audioFile && BMP.availableForWrite() > bufferSize) {
+  constexpr size_t bufferSize = 4096;
+  uint8_t* audioFileBuffer = new uint8_t[bufferSize];
+  while (audioFile.peek() != -1) {
     int len = audioFile.read(audioFileBuffer, bufferSize);
+    while (BMP.availableForWrite() < len) {
+      delay(1);
+    }
     BMP.write(audioFileBuffer, len);
   }
-  Serial.println("Close");
-  audioFile.close();
-  // delete audioFileBuffer;
-  while (BMP.playing()) {
-    delay(100);
+  while (!BMP.done()) {
+    delay(1);
   }
+  audioFile.close();
+  delete audioFileBuffer;
 }
 
 void setup() {
@@ -65,5 +63,13 @@ void setup() {
 
 void loop() {
   playWav("/dog.wav");
+  delay(2000);
+  playWav("/cat.wav");
+  delay(2000);
+  playWav("/cow.wav");
+  delay(2000);
+  playWav("/sheep.wav");
+  delay(2000);
+  playWav("/rooster.wav");
   delay(2000);
 }
